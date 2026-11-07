@@ -218,7 +218,7 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
 
   // ---------- 画布尺寸自适应（含高分屏） ----------
   function resize() {
-    onUp();
+    endStroke();
     var saved = document.createElement('canvas');
     saved.width = canvas.width; saved.height = canvas.height;
     saved.getContext('2d').drawImage(canvas, 0, 0);
@@ -261,9 +261,9 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
     sizeDot.style.height = px + 'px';
   }
 
-  function pos(e) {
+  function pos(x, y) {
     var r = canvas.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
+    return { x: x - r.left, y: y - r.top };
   }
 
   function pushUndo() {
@@ -271,13 +271,11 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
     if (undoStack.length > MAX_UNDO) undoStack.shift();
   }
 
-  function onDown(e) {
-    e.preventDefault();
-    if (drawing || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    canvas.setPointerCapture(e.pointerId);
+  function startStroke(x, y) {
+    if (drawing) return;
     drawing = true;
     pushUndo();
-    var p = pos(e);
+    var p = pos(x, y);
     lastX = p.x; lastY = p.y;
 
     ctx.save();
@@ -294,10 +292,9 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
     ctx.moveTo(p.x, p.y);
   }
 
-  function onMove(e) {
+  function moveStroke(x, y) {
     if (!drawing) return;
-    e.preventDefault();
-    var p = pos(e);
+    var p = pos(x, y);
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
     ctx.lineTo(p.x, p.y);
@@ -305,18 +302,51 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
     lastX = p.x; lastY = p.y;
   }
 
-  function onUp() {
+  function endStroke() {
     if (!drawing) return;
     drawing = false;
     ctx.closePath();
     ctx.restore();
   }
 
-  canvas.addEventListener('pointerdown', onDown);
-  canvas.addEventListener('pointermove', onMove);
-  canvas.addEventListener('pointerup', onUp);
+  // ---------- 鼠标（桌面端） ----------
+  canvas.addEventListener('mousedown', function (e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    startStroke(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (!drawing) return;
+    e.preventDefault();
+    moveStroke(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', function () {
+    endStroke();
+  });
+
+  // ---------- 触摸（手机端） ----------
+  canvas.addEventListener('touchstart', function (e) {
+    e.preventDefault();
+    var t = e.touches[0];
+    if (t) startStroke(t.clientX, t.clientY);
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', function (e) {
+    e.preventDefault();
+    if (!drawing) return;
+    var t = e.touches[0];
+    if (t) moveStroke(t.clientX, t.clientY);
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', function (e) {
+    e.preventDefault();
+    endStroke();
+  });
+
+  canvas.addEventListener('touchcancel', function () {
+    endStroke();
+  });
   
-  canvas.addEventListener('pointercancel', onUp);
 
   sizeInput.addEventListener('input', function () {
     currentSize = parseInt(this.value, 10);
