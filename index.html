@@ -200,7 +200,7 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
   var sizeDot = document.getElementById('sizeDot');
   var sizeInput = document.getElementById('size');
 
-  var PALETTE = ['#1f1f1f', '#ffffff', '#e53935', '#fb8c00', '#fbc02d', '#43a047', '#1e88e5', '#8e24aa', '#ec407a', '#6d4c41'];
+  var PALETTE = ['#1f1f1f', '#e53935', '#fb8c00', '#fbc02d', '#43a047', '#1e88e5', '#8e24aa', '#ec407a', '#6d4c41'];
 
   var currentColor = PALETTE[0];
   var currentSize = 5;
@@ -239,7 +239,7 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
     PALETTE.forEach(function (c) {
       var s = document.createElement('button');
       s.type = 'button';
-      s.setAttribute('aria-label', ['黑','白','红','橙','黄','绿','蓝','紫','粉','棕'][PALETTE.indexOf(c)]);
+      s.setAttribute('aria-label', ['黑','红','橙','黄','绿','蓝','紫','粉','棕'][PALETTE.indexOf(c)]);
       s.className = 'swatch';
       s.style.background = c;
       if (c === currentColor) s.classList.add('active');
