@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>画下你的怪兽 · 人类脑中怪兽图鉴</title>
+<style>
+  :root {
+    --bg: #f5f3ef;
+    --card: #ffffff;
+    --ink: #2b2b2b;
+    --muted: #8a8a8a;
+    --accent: #ff6b35;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;            /* 动态视口高度，适配 iOS 地址栏伸缩 */
+    overflow: hidden;          /* 禁止整页滚动/下拉刷新 */
+    overscroll-behavior: none; /* 禁止橡皮筋回弹 */
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body { display: flex; flex-direction: column; }
+
+  header {
+    padding: calc(10px + env(safe-area-inset-top)) 14px 10px; /* 适配刘海屏顶部 */
+    background: var(--card);
+    border-bottom: 1px solid #ece9e3;
+    display: flex; align-items: center;
+    z-index: 5;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+
+  #stage {
+    flex: 1; position: relative; overflow: hidden;
+    background: #fff;
+    touch-action: none;
+  }
+  #stage canvas { display: block; position: absolute; inset: 0; }
+
+  footer {
+    background: var(--card);
+    border-top: 1px solid #ece9e3;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .colors { display: flex; gap: 6px; align-items: center; }
+  .swatch {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid transparent; cursor: pointer; flex: none;
+    touch-action: manipulation; /* 防止双击放大 */
+  }
+  .swatch.active { border-color: var(--accent); box-shadow: 0 0 0 2px #fff inset, 0 0 0 3px var(--accent); }
+
+  .size-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .size-wrap input[type=range] { width: 80px; touch-action: manipulation; }
+  .size-dot {
+    display: inline-block; border-radius: 50%; background: var(--ink);
+    width: 6px; height: 6px; transition: all .1s;
+  }
+
+  .btn {
+    border: 1px solid #ddd; background: #fff; border-radius: 8px;
+    padding: 8px 10px; font-size: 14px; color: var(--ink); cursor: pointer;
+    white-space: nowrap; text-decoration: none; display: inline-block;
+    touch-action: manipulation; /* 防止双击放大 */
+  }
+  .btn:active { background: #f0f0f0; }
+  .btn.primary {
+    background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600;
+  }
+  .btn.primary:active { background: #e85a27; }
+  .btn.on { background: #ffe8dc; border-color: var(--accent); color: var(--accent); }
+
+  #toast {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: rgba(0,0,0,.78); color: #fff; padding: 14px 22px;
+    border-radius: 10px; font-size: 15px; z-index: 99;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
+    text-align: center; max-width: 80%;
+  }
+  #toast.show { opacity: 1; }
+
+  /* 保存预览弹层 */
+  #saveModal {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,.55);
+    display: none; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #saveModal.show { display: flex; }
+  .modal-card {
+    background: #fff; border-radius: 14px; padding: 18px;
+    max-width: 90vw; max-height: 88vh; overflow: auto;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .modal-title { font-size: 16px; font-weight: 600; }
+  #saveImg {
+    max-width: 100%; max-height: 58vh; border-radius: 8px;
+    border: 1px solid #eee; display: block;
+    /* 关键：允许长按弹出「保存图片」菜单 */
+    -webkit-touch-callout: default;
+    -webkit-user-select: auto;
+    user-select: auto;
+  }
+  .modal-hint { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 10px; }
+
+:root { --bg:#354d60; --card:#f2eee5; --ink:#263d50; --muted:#75818a; --accent:#405e76; }
+body {
+ background-color:#354d60;
+ background-image:radial-gradient(ellipse at 30% 10%,#71839455,transparent 65%),repeating-linear-gradient(0deg,#ffffff06 0 1px,transparent 1px 4px),repeating-linear-gradient(90deg,#00000012 0 1px,transparent 1px 3px);
+ padding:0 max(16px,calc((100vw - 760px)/2));
+}
+header { flex:none; background:none; border:0; color:#f4f0e7; padding:calc(22px + env(safe-area-inset-top)) 2px 18px; display:block; position:relative; }
+.eyebrow { font:11px Georgia,serif; letter-spacing:3px; color:#c9d2d7; margin-bottom:9px; }
+header h1 { font:600 27px "Songti SC","Noto Serif CJK SC",serif; letter-spacing:3px; }
+header p { font-size:12px; letter-spacing:1px; margin:9px 0 0; color:#d0d8dd; }
+.header-star { position:absolute; right:8px; top:35px; font:40px Georgia,serif; color:#d7cba4; }
+.paper-heading { flex:none; display:flex; justify-content:space-between; background:var(--card); border-radius:3px 3px 0 0; padding:15px 17px 10px; border-bottom:1px solid #d6d1c6; color:#687785; font:10px Georgia,serif; letter-spacing:2px; }
+#stage { min-height:110px; background:#faf8f2; border-left:1px solid #ddd6c8; border-right:1px solid #ddd6c8; box-shadow:0 8px 25px #172b3d33; }
+#stage::after { content:""; position:absolute; inset:10px; border:1px solid #c5bba455; pointer-events:none; }
+footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px; padding:15px 14px; box-shadow:0 10px 20px #182d3c44; }
+.colors { gap:9px; flex:1; justify-content:space-between; }
+.swatch { width:25px; height:25px; border:1px solid #00000015; padding:0; }
+.swatch.active { border-color:#263d50; box-shadow:0 0 0 3px var(--card) inset,0 0 0 1px #263d50; }
+.size-wrap { width:100%; margin:13px 0 0; border-top:1px solid #d6d1c6; padding-top:12px; color:#63717a; font-size:11px; }
+.size-wrap input[type=range] { width:auto; flex:1; accent-color:#405e76; margin-left:10px; }
+.size-dot { margin:0 8px; }
+.btn { border:1px solid #c6c9c6; background:#f8f6f0; border-radius:3px; padding:10px 12px; font-size:13px; letter-spacing:1px; }
+.btn.primary { background:#354f64; border-color:#354f64; color:#faf7ee; }
+.btn.primary:active { background:#243e53; }
+.btn.on { background:#dce4e7; color:#263d50; border-color:#405e76; }
+.btn:focus-visible,.swatch:focus-visible { outline:2px solid #b0975b; outline-offset:3px; }
+.colophon { flex:none; padding:12px 0 calc(14px + env(safe-area-inset-bottom)); color:#d2dbe0; text-align:center; font:11px "Songti SC",serif; letter-spacing:2px; }
+.modal-card { background:#f5f1e7; border-radius:4px; box-shadow:0 12px 50px #0004; }
+.modal-title { font:600 20px "Songti SC",serif; color:#354f64; }
+#saveImg { border-radius:2px; }
+@media (max-height:650px) { header {padding-top:calc(10px + env(safe-area-inset-top));padding-bottom:10px;} header h1{font-size:22px;} header p{margin-top:5px;} .colophon{padding:6px 0;} footer{padding:10px;} }
+
+</style>
+</head>
+<body>
+  <header>
+    <div class="eyebrow">A BESTIARY OF THE HUMAN MIND</div><h1>画下你的怪兽</h1><p>它是什么模样？让情绪在纸上现身。</p><span class="header-star" aria-hidden="true">✧</span>
+  </header>
+
+  <div class="paper-heading"><span>怪兽观察手记</span><span>FIELD NOTES ✦</span></div>
+  <div id="stage">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <footer>
+    <div class="row">
+      <div class="colors" id="colors"></div>
+      <div class="size-wrap">
+        <label for="size">笔触粗细</label><span class="size-dot" id="sizeDot"></span>
+        <input type="range" id="size" min="2" max="30" value="5">
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button class="btn" id="btnEraser">橡皮</button>
+      <button class="btn" id="btnUndo">撤销</button>
+      <button class="btn" id="btnClear">清空</button>
+      <button class="btn primary" id="btnSave" style="margin-left:auto;">保存画作</button>
+    </div>
+  </footer>
+
+  <div class="colophon">每一种情绪，都有自己的模样。</div>
+  <div id="saveModal" role="dialog" aria-modal="true" aria-label="保存你的怪兽">
+    <div class="modal-card">
+      <div class="modal-title">你的怪兽，已被记录</div>
+      <img id="saveImg" alt="你的画">
+      <div class="modal-hint" id="saveHint">长按图片即可保存到相册</div>
+      <div class="modal-actions">
+        <a class="btn primary" id="downloadBtn" download="我的怪兽手记.png">下载图片</a>
+        <button class="btn" id="closeSave">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var stage = document.getElementById('stage');
+  var canvas = document.getElementById('canvas');
+  var ctx = canvas.getContext('2d');
+  var sizeDot = document.getElementById('sizeDot');
+  var sizeInput = document.getElementById('size');
+
+  var PALETTE = ['#263d50', '#6b8192', '#a4b8bd', '#b6a2ba', '#a55f65', '#d5bd7b', '#7a8d74', '#f4efe4'];
+
+  var currentColor = PALETTE[0];
+  var currentSize = 5;
+  var isErasing = false;
+  var drawing = false;
+  var lastX = 0, lastY = 0;
+
+  var undoStack = [];
+  var MAX_UNDO = 20;
+
+  // 判断当前环境（微信 / 触屏）
+  var ua = navigator.userAgent || '';
+  var isWeChat = /MicroMessenger/i.test(ua);
+  var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+
+  // ---------- 画布尺寸自适应（含高分屏） ----------
+  function resize() {
+    onUp();
+    var saved = document.createElement('canvas');
+    saved.width = canvas.width; saved.height = canvas.height;
+    saved.getContext('2d').drawImage(canvas, 0, 0);
+    var oldDpr = canvas.dataset.dpr ? Number(canvas.dataset.dpr) : (window.devicePixelRatio || 1);
+    var dpr = window.devicePixelRatio || 1;
+    var w = stage.clientWidth, h = stage.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.dataset.dpr = dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // Keep strokes at their drawn size through mobile toolbar changes.
+    ctx.drawImage(saved, 0, 0, saved.width / oldDpr, saved.height / oldDpr);
+  }
+
+  function buildColors() {
+    var box = document.getElementById('colors');
+    PALETTE.forEach(function (c) {
+      var s = document.createElement('button');
+      s.type = 'button';
+      s.setAttribute('aria-label', ['墨蓝','雾蓝','浅蓝','灰紫','莓红','麦黄','鼠尾草绿','米白'][PALETTE.indexOf(c)]);
+      s.className = 'swatch';
+      s.style.background = c;
+      if (c === currentColor) s.classList.add('active');
+      s.addEventListener('click', function () {
+        currentColor = c;
+        isErasing = false;
+        document.getElementById('btnEraser').classList.remove('on');
+        document.querySelectorAll('.swatch').forEach(function (el) {
+          el.classList.toggle('active', el === s);
+        });
+      });
+      box.appendChild(s);
+    });
+  }
+
+  function updateSizeDot() {
+    var px = Math.min(currentSize, 24);
+    sizeDot.style.width = px + 'px';
+    sizeDot.style.height = px + 'px';
+  }
+
+  function pos(e) {
+    var r = canvas.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  function pushUndo() {
+    undoStack.push(canvas.toDataURL());
+    if (undoStack.length > MAX_UNDO) undoStack.shift();
+  }
+
+  function onDown(e) {
+    e.preventDefault();
+    if (drawing || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    canvas.setPointerCapture(e.pointerId);
+    drawing = true;
+    pushUndo();
+    var p = pos(e);
+    lastX = p.x; lastY = p.y;
+
+    ctx.save();
+    ctx.globalCompositeOperation = isErasing ? 'destination-out' : 'source-over';
+    ctx.lineWidth = isErasing ? currentSize * 3 : currentSize;
+    ctx.strokeStyle = isErasing ? '#000' : currentColor;
+    ctx.fillStyle = isErasing ? '#000' : currentColor;
+
+    // 单击也能留下一个点
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+
+  function onMove(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    lastX = p.x; lastY = p.y;
+  }
+
+  function onUp() {
+    if (!drawing) return;
+    drawing = false;
+    ctx.closePath();
+    ctx.restore();
+  }
+
+  canvas.addEventListener('pointerdown', onDown);
+  canvas.addEventListener('pointermove', onMove);
+  canvas.addEventListener('pointerup', onUp);
+  
+  canvas.addEventListener('pointercancel', onUp);
+
+  sizeInput.addEventListener('input', function () {
+    currentSize = parseInt(this.value, 10);
+    updateSizeDot();
+  });
+
+  document.getElementById('btnEraser').addEventListener('click', function () {
+    isErasing = !isErasing;
+    this.classList.toggle('on', isErasing);
+    document.querySelectorAll('.swatch').forEach(function (el) { el.classList.remove('active'); });
+  });
+
+  document.getElementById('btnUndo').addEventListener('click', function () {
+    var snap = undoStack.pop();
+    if (!snap) { toast('没有可撤销的步骤了'); return; }
+    var img = new Image();
+    img.onload = function () {
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      ctx.restore();
+    };
+    img.src = snap;
+  });
+
+  document.getElementById('btnClear').addEventListener('click', function () {
+    if (!hasInk()) { toast('画布已经是空的了'); return; }
+    if (!confirm('确定要清空画布吗？')) return;
+    pushUndo();
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  });
+
+  // ---------- 保存到手机/下载 ----------
+  document.getElementById('btnSave').addEventListener('click', function () {
+    if (!hasInk()) {
+      toast('先画点什么吧 😊');
+      return;
+    }
+
+    // 透明背景合成到白底，得到干净的图片
+    var out = document.createElement('canvas');
+    out.width = canvas.width;
+    out.height = canvas.height;
+    var octx = out.getContext('2d');
+    octx.fillStyle = '#faf8f2';
+    octx.fillRect(0, 0, out.width, out.height);
+    octx.drawImage(canvas, 0, 0);
+    var dataURL = out.toDataURL('image/png');
+
+    var saveImg = document.getElementById('saveImg');
+    saveImg.src = dataURL;
+
+    var hint = document.getElementById('saveHint');
+    if (isWeChat) {
+      hint.textContent = '长按上方图片，选择「保存图片」即可存到相册';
+    } else if (isTouch) {
+      hint.textContent = '长按上方图片保存到相册';
+    } else {
+      hint.textContent = '点击下方「下载图片」按钮即可保存';
+    }
+
+    // 桌面端下载链接
+    var downloadBtn = document.getElementById('downloadBtn');
+    downloadBtn.href = dataURL;
+    downloadBtn.style.display = isTouch ? 'none' : 'inline-block';
+
+    document.getElementById('saveModal').classList.add('show');
+  });
+
+  document.getElementById('closeSave').addEventListener('click', function () {
+    document.getElementById('saveModal').classList.remove('show');
+  });
+  document.getElementById('saveModal').addEventListener('click', function (e) {
+    if (e.target === this) this.classList.remove('show');
+  });
+
+  function hasInk() {
+    var data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (var i = 3; i < data.length; i += 4) {
+      if (data[i] !== 0) return true;
+    }
+    return false;
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+  }
+
+  buildColors();
+  updateSizeDot();
+  resize();
+  window.addEventListener('resize', resize);
+  new ResizeObserver(resize).observe(stage);
+
+  document.addEventListener('contextmenu', function (e) {
+    if (e.target === canvas) e.preventDefault();
+  });
+})();
+</script>
+</body>
+</html>
