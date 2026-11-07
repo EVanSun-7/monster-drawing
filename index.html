@@ -226,6 +226,8 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
     var oldDpr = canvas.dataset.dpr ? Number(canvas.dataset.dpr) : (window.devicePixelRatio || 1);
     var dpr = window.devicePixelRatio || 1;
     var w = stage.clientWidth, h = stage.clientHeight;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     canvas.dataset.dpr = dpr;
@@ -454,6 +456,11 @@ footer { flex:none; background:var(--card); border:0; border-radius:0 0 3px 3px;
   document.addEventListener('contextmenu', function (e) {
     if (e.target === canvas) e.preventDefault();
   });
+
+  // iOS Safari：禁止双指缩放 / 双击放大手势
+  document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  document.addEventListener('gesturechange', function (e) { e.preventDefault(); });
+  document.addEventListener('gestureend', function (e) { e.preventDefault(); });
 })();
 </script>
 </body>
